@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: hypersim_val  # ignore
+dir: processed/val
+filenames: Unid/data_split/hypersim/filename_list_val_filtered.txt

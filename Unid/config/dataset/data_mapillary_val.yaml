@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: mapillary_val
+dir: 'validation/images'
+filenames: Unid/data_split/mapillary/validation.txt

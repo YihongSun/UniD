@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: ade20k_val
+dir: 'images/validation'
+filenames: Unid/data_split/ade20k/validation.txt

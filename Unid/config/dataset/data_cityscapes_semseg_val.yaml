@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: cityscapes_matseg_val
+dir: 'leftImg8bit/val'
+filenames: Unid/data_split/cityscapes/val.txt

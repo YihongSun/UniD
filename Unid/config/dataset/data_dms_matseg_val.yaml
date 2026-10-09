@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: dms_matseg_val
+dir: 'images/validation'
+filenames: Unid/data_split/dms/validation.txt

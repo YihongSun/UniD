@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: interior_verse_minival
+dir: 'mini_val/images'
+filenames: Unid/data_split/intverse/mini_val.txt

@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: coco_boundary_val2017  # ignore
+dir: ''
+filenames: Unid/data_split/coco/val2017_boundary.txt

@@ -1,0 +1,2 @@
+stable-diffusion-2:
+  local_path: checkpoints/pretrained_sd2

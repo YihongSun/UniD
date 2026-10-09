@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: saw_illum_test
+dir: 'saw_images_512'
+filenames: Unid/data_split/saw/test.txt

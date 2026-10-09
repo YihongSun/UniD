@@ -1,0 +1,244 @@
+# Task configuration
+all_tasks:
+  depth:
+    geometric_image:
+      task_weight: 1.0
+      dataset: [
+        "ImageHypersimDataset(resize=(512,640))",
+        "ImageVKITTI2Dataset(resize=(512,640))",
+      ]
+      dataset_weights: [1.0, 1.0]
+    geometric_video:
+      task_weight: 1.0
+      dataset: [
+        "VideoPointOdysseyDataset(max_frame_skip=8, resize=(512,640))",
+        "VideoTartanairDataset(max_frame_skip=8, resize=(512,640))",
+        "VideoSpringDataset(max_frame_skip=8, resize=(512,640))",
+      ]
+      dataset_weights: [1.0, 1.0, 1.0]
+  normal:
+    geometric_image:
+      task_weight: 1.0
+      dataset: [
+        "ImageHypersimDataset(resize=(512,640))",
+        "ImageVKITTI2Dataset(resize=(512,640))",
+      ]
+      dataset_weights: [1.0, 1.0]
+  semseg:
+    semantic_image:
+      task_weight: 1.0
+      dataset: [
+        "ImageCOCODataset(resize=(512,640))",
+        "ImageCityscapesDataset(resize=(512,640))",
+      ]
+      dataset_weights: [1.0, 1.0]
+    semantic_video:
+      task_weight: 1.0
+      dataset: ["VideoVIPSegDataset(max_frame_skip=4, resize=(512,640))",]
+      dataset_weights: [1.0]
+  partseg:
+    semantic_image:
+      task_weight: 1.0
+      dataset: ["ImageDensePoseDataset(resize=(512,640), fill_missing_tasks=False)",]
+      dataset_weights: [1.0]
+  boundary:
+    semantic_image:
+      task_weight: 1.0
+      dataset: [
+        "ImageCOCODataset(resize=(512,640))",
+        "ImageCityscapesDataset(resize=(512,640))",
+      ]
+      dataset_weights: [1.0, 1.0]
+    semantic_video:
+      task_weight: 1.0
+      dataset: ["VideoVIPSegDataset(max_frame_skip=4, resize=(512,640))",]
+      dataset_weights: [1.0] 
+  albedo:
+    material_image:
+      task_weight: 1.0
+      dataset: ["ImageHypersimDataset(resize=(512,640), fill_missing_tasks=False, load_tasks=['albedo'])",]
+      dataset_weights: [1.0]
+  illum:
+    material_image:
+      task_weight: 1.0
+      dataset: ["ImageHypersimDataset(resize=(512,640), fill_missing_tasks=False, load_tasks=['illum'])",]
+      dataset_weights: [1.0]
+  matseg:
+    material_image:
+      task_weight: 1.0
+      dataset: ["ImageDMSDataset(resize=(512,640))",]
+      dataset_weights: [1.0]
+
+all_projectors:
+  depth:
+    depth:
+      hidden_dims: null   # MLP hidden dims #None, [...]
+      lr_multiplier: 1.0  # 1.0 if unspecified
+      proj_dim: 1
+  normal:
+    normal:
+      hidden_dims: null
+      proj_dim: 3
+  semseg:
+    semseg-coco:
+      hidden_dims: null
+      proj_dim: 201
+    semseg-cityscapes:
+      hidden_dims: null
+      proj_dim: 35
+    semseg-vipseg:
+      hidden_dims: null
+      proj_dim: 125
+  partseg:
+    partseg-coco:
+      hidden_dims: null
+      proj_dim: 16 # 1 background + 14 parts + 1 ignore
+  boundary:
+    boundary:
+      hidden_dims: null
+      proj_dim: 1
+  albedo:
+    albedo:
+      hidden_dims: null
+      proj_dim: 3
+  illum:
+    illum:
+      hidden_dims: null
+      proj_dim: 3
+  matseg:
+    matseg:
+      hidden_dims: null
+      proj_dim: 57
+  restore:
+    restore:
+      hidden_dims: null
+      proj_dim: 3
+
+all_losses:
+  depth:
+    depth-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedDepthLossFunction"
+      params:
+        i_ssi: {"weight": 1.0}
+        v_ssi: {"weight": 1.0}
+        v_tgm: {"weight": 1.0, "tg_thrd": 0.05} # temporal gradient matching
+        far_p: {"weight": 3.0}
+  normal:
+    normal-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedNormalsLossFunction"
+      params:
+        i_ang: {"weight": 1.0}
+        far_p: {"weight": 3.0}
+  semseg:
+    semseg-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedSemSegLossFunction"
+      params:
+        ce: {"weight": 1.0, "ignore_index": 0}
+        # dice: {"weight": 1.0, "smooth": 1.0, "squared": False, "ignore_index": 0}
+        v_tgm: {"weight": 3.0}
+    semseg-pseudo:
+      multiplier: 1.0
+      cls_name: "UnifiedSemSegLossFunction"
+      params:
+        ce: {"weight": 1.0, "ignore_index": 0}
+        # dice: {"weight": 1.0, "smooth": 1.0, "squared": False, "ignore_index": 0}
+  partseg:
+    partseg-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedSemSegLossFunction"
+      params:
+        ce: {"weight": 1.0, "ignore_index": 15}
+        non_empty_reg: {"weight": 1.0, "pos_index": 15, "empty_index": 0}  # ignore_index for partseg
+  boundary:
+    boundary-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedBoundaryLossFunction"
+      params:
+        pos_mse: {"weight": 1.0, "thrd": 0.01}
+        neg_mse: {"weight": 20.0, "thrd": 0.01}
+  albedo:
+    albedo-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedImageLossFunction"
+      params:
+        mse: {"weight": 1.0}
+  illum:
+    illum-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedImageLossFunction"
+      params:
+        mse: {"weight": 1.0}
+  matseg:
+    matseg-gt:
+      multiplier: 1.0
+      cls_name: "UnifiedSemSegLossFunction"
+      params:
+        ce: {"weight": 1.0, "ignore_index": 0}
+        # dice: {"weight": 1.0, "smooth": 1.0, "squared": False, "ignore_index": 0}
+
+
+# Experiment configuration
+# Tasks: depth, normal, semseg, partseg, boundary, albedo, illum, matseg
+task_to_finetune: depth
+experiment_name: ""  # "", "_1", etc
+
+model_to_finetune: "checkpoints/sd2_unified_B32_T4_50000_combined"
+
+tasks: ${all_tasks.${task_to_finetune}}
+projectors: ${all_projectors.${task_to_finetune}}
+losses: ${all_losses.${task_to_finetune}}
+
+# Model configuration
+architecture: "MemAttnTemp(con)(dec)"  # choices: MemAttnTemp_ReEnc
+noise_type: "zeros" 
+pretrained_model_name: stable-diffusion-2 # see available pretrained models in .pretrained_models.yaml
+additional_pseudo_multiplier: 1.0  # weight for pseudo-label losses, set to 0 to disable pseudo-label training
+
+# Training configuration`
+max_train_steps: 30000
+effective_batch_size: 16  # we use gradient accumulation to scale the batch size
+batch_size_per_gpu: 1   # this is the "actual" batch size per GPU iter (only supports 1 for track-focal/dice)
+temporal_length: 4          # T, number of frames for video data or frame packing temporal dimension for image data
+dataloader_num_workers: 8
+train_vis_steps: 250
+
+# Resume from checkpoint, you can use latest to resume from the latest checkpoint
+resume_from_checkpoint: latest
+
+# Save checkpoints for every 1000 steps, only save the latest checkpoint
+checkpointing_steps: 1000
+checkpoints_keep_freq: 10000 # keep every 10k checkpoints, in addition to the latest ones, disable by setting to <=0
+checkpoints_total_limit: 1
+
+# Don't change these unless you know what you are doing
+gradient_checkpointing: true
+learning_rate: 3.0e-05
+lr_exp_warmup_steps: 1000
+lr_total_iter_length: ${max_train_steps}  # Will match max_train_steps
+lr_scheduler_type: "linear"  # choices: exponential, linear
+adam_beta1: 0.9
+adam_beta2: 0.999
+adam_weight_decay: 1.0e-2
+adam_epsilon: 1.0e-08
+max_grad_norm: 1.0
+seed: 42
+mixed_precision: "no"
+report_to: "wandb"  # wandb, tensorboard
+tracker_project_name: "unid-research"
+enable_xformers_memory_efficient_attention: true
+
+# Output directory
+task2keys: 
+  depth: D
+  normal: N
+  semseg: S
+  partseg: P
+  boundary: B
+  albedo: A
+  illum: I
+  matseg: M
+output_dir: "checkpoints/sd2_${task2keys.${task_to_finetune}}_${architecture}_T${temporal_length}_${max_train_steps}${experiment_name}"
+logging_dir: "logs"

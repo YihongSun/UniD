@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: pascal_partseg_val
+dir: 'images'
+filenames: Unid/data_split/pascal/val.txt

@@ -1,0 +1,135 @@
+from collections import defaultdict
+import os, sys
+import os.path as osp
+import json
+from tqdm import tqdm
+from PIL import Image
+import numpy as np
+import cv2
+import pycocotools.mask as MaskUtils
+import argparse
+import multiprocessing as mp
+from functools import partial
+sys.path.append(osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
+from eval_matseg import init_metrics, update_metrics, finalize_metrics, merge_metric_states
+
+
+def process_single_image(fn, data_dir, pred_dir, split, num_classes=57):
+    """
+    Process a single image and return its metric contribution
+    
+    Args:
+        fn: filename
+        data_dir: base data directory
+        pred_dir: prediction directory
+        split: dataset split
+        num_classes: number of classes
+    
+    Returns:
+        metric_state: metrics for this single image
+    """
+    instance = osp.splitext(fn)[0]
+    
+    img_path = osp.join(data_dir, 'images', split, fn)
+    gt_path = osp.join(data_dir, 'dms_annotations', split, instance + '.png')
+    pred_path = osp.join(pred_dir, 'pred_' + instance + '.png')
+    
+    if not osp.exists(img_path):
+        raise FileNotFoundError(f"Image file {img_path} not found")
+    if not osp.exists(gt_path):
+        raise FileNotFoundError(f"Ground truth file {gt_path} not found")
+    if not osp.exists(pred_path):
+        raise FileNotFoundError(f"Prediction file {pred_path} not found")
+
+    gt_mask = np.array(Image.open(gt_path))
+    pred_mask = np.array(Image.open(pred_path))
+    
+    # Initialize and update metrics for this single image
+    metric_state = init_metrics(num_classes=num_classes)
+    metric_state = update_metrics(metric_state, gt_mask, pred_mask)
+    
+    # import imageio
+    # imageio.imwrite('tmp.png', imageio.imread(img_path))
+    # imageio.imwrite('tmp2.png', (gt_mask / 57 * 255).astype(np.uint8))
+    # imageio.imwrite('tmp3.png', (pred_mask / 57 * 255).astype(np.uint8))
+    # print(finalize_metrics(metric_state))
+    # breakpoint()
+
+    return metric_state
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Evaluate Material Segmentation on DMS (Parallel)')
+    parser.add_argument('--pred_dir', type=str, required=True, help='Directory containing predicted material segmentation masks')
+    parser.add_argument('--base_data_dir', type=str, default='data/DMS_v1', help='Path to DMS data directory')
+    parser.add_argument('--split', type=str, default='validation', choices=['validation', 'test'], help='Dataset split to evaluate on')
+    parser.add_argument('--output_dir', type=str, default='./matseg_results', help='Directory to save material segmentation results')
+    parser.add_argument('--num_workers', type=int, default=16, help='Number of parallel workers (default: number of CPU cores)')
+    args = parser.parse_args()
+    return args
+
+if __name__ == '__main__':
+    args = parse_args()
+    data_root = getattr(args, "base_data_dir", getattr(args, "data_dir", None))
+    if data_root and not os.path.isdir(data_root):
+        raise FileNotFoundError(
+            f"Dataset root is missing: {data_root}. Obtain the dataset from its upstream source "
+            "and pass its local path with --base_data_dir or --data_dir."
+        )
+    pred_dir = args.pred_dir
+    data_dir = args.base_data_dir
+    split = args.split
+    output_dir = args.output_dir
+    
+    # Determine number of workers
+    num_workers = args.num_workers if args.num_workers is not None else mp.cpu_count()
+    print(f"Using {num_workers} parallel workers")
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    img_fnames = sorted(os.listdir(osp.join(data_dir, 'images', split)))
+    img_fnames = [fn for fn in img_fnames if fn.lower().endswith('.jpg') or fn.lower().endswith('.png') or fn.lower().endswith('.jpeg')]
+    print(f"Found {len(img_fnames)} images to evaluate")
+
+    # Create partial function with fixed arguments
+    process_func = partial(
+        process_single_image,
+        data_dir=data_dir,
+        pred_dir=pred_dir,
+        split=split,
+        num_classes=57
+    )
+
+    process_func(img_fnames[0])   # test on the first image to catch any errors early
+    # Process images in parallel
+    print("Processing images in parallel...")
+    with mp.Pool(processes=num_workers) as pool:
+        # Use imap for progress bar
+        metric_states = list(tqdm(
+            pool.imap(process_func, img_fnames),
+            total=len(img_fnames),
+            desc="Evaluating Material Segmentation"
+        ))
+
+    # Merge results from all workers
+    print("Merging results from all workers...")
+    merged_state = merge_metric_states(metric_states, num_classes=57)
+    
+    # Compute final metrics
+    metrics = finalize_metrics(merged_state)
+    print("Final evaluation metrics:", metrics)
+    
+    # Save per-class results
+    with open(osp.join(output_dir, 'matseg_metrics_per_class.txt'), 'w') as f:
+        f.write("class_id,iou\n")
+        for i, iou in enumerate(metrics['per_class_iou']):
+            f.write(f"{i} ({metrics['per_class_freq'][i]*100:.2f}%): {iou}\n")
+
+    # Save summary
+    checkpoint_name = osp.basename(pred_dir)
+    summary_file = osp.join(output_dir, 'matseg_metrics_summary.txt')
+    with open(summary_file, 'w') as f:
+        f.write("|                  |     mIoU    |  fwIoU  |   mPA  |   PA   |\n")
+        f.write("|------------------|-------------|---------|--------|--------|\n")
+        f.write(f"| {checkpoint_name:<16} | {metrics['mIoU']:>11.2f} | {metrics['fwIoU']:>7.2f} | {metrics['mPA']:>6.2f} | {metrics['PA']:>6.2f} |\n")
+    print(f"Summary saved to: {summary_file}")

@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Environments
+.venv
+venv/
+
+# Data and output folders
+/data
+quant
+checkpoints*
+data_vis/
+vis
+wandb
+ffmpeg
+
+# macOS
+.DS_Store

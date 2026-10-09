@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: iiw_albedo_test
+dir: 'images'
+filenames: Unid/data_split/iiw/test.txt

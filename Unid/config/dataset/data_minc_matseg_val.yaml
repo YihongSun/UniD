@@ -1,0 +1,4 @@
+name: scannet # ignore
+disp_name: minc_matseg_val
+dir: 'images'
+filenames: Unid/data_split/minc/validation.txt

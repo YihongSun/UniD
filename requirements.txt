@@ -1,0 +1,13 @@
+# Versions used for the Phase 1 GPU baseline (Python 3.10, CUDA 12.1).
+# For other CUDA/PyTorch combinations, install the matching torch and torchvision
+# wheels from https://pytorch.org/get-started/locally/ before installing this file.
+torch==2.2.0
+torchvision==0.17.0
+
+# Installs UniD and the inference plus research dependencies declared in setup.py.
+-e .[research]
+
+# Public source dependencies used by evaluation and dataset workflows.
+git+https://github.com/cocodataset/panopticapi.git
+git+https://github.com/EasternJournalist/utils3d.git
+lpips
